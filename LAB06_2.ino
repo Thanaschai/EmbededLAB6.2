@@ -1,0 +1,57 @@
+
+#define BUZZER 25
+#define BUTTON 32
+hw_timer_t *Sound = NULL;
+hw_timer_t *Stage = NULL;
+int note[] = {1976,1760,1976,1760,1976,1760,1976,1760,1976,1175,1109,1175,1109,1109,1175,1175,1175,1319,1175,1319,1175,1109,1760,1976,1760,1976,1760,1976,1760,1976,1760,1976,1175,1109,1976,1976,1175,1109,1976,1976,1976,1760,1976,1760,1175,1109,1480,1319,1319,1175,1319,1175,1319,1175,1109,1109,1109,1976,1176,1109,1176,1109,1976,1976,1976,1175,1319,1175,1109,1976,1109,1976,1109,1976,1976,1976,1175,1976,1175,1109,1976,1976,1760,1976,1760,1976,1760,1175,1175,1109};
+int tempo[] = {1000000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,500000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,500000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,500000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,500000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,500000,175000,175000,175000,175000,175000,175000,175000,175000,175000,500000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,500000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,175000,500000};
+int arrLength = sizeof(note) / sizeof(int);
+int count = 0;
+int tp_ct = 0;
+double speed[5] = {1,0.75,0.5,2,1.5};
+double nowSpeed = 2;
+int idx = 1;
+
+void IRAM_ATTR pulseGen(){
+  digitalWrite(BUZZER, !digitalRead(BUZZER));
+}
+
+void IRAM_ATTR IO_INT_ISR(){
+  nowSpeed = speed[idx];
+  idx = (idx + 1)%5;
+}
+
+int tp(){
+  double t = tempo[tp_ct] * nowSpeed;
+  tp_ct = (tp_ct + 1)%arrLength;
+  return (int) t;
+}
+
+int fz(){
+  int t = note[count];
+  count = (count + 1)%arrLength;
+  return t/6;
+}
+
+void IRAM_ATTR start(){
+  timerAlarmWrite(Sound, fz(), true);
+  timerAlarmEnable(Sound);
+  timerAlarmWrite(Stage, tp(), true);
+  timerAlarmEnable(Stage);
+}
+
+void setup() {
+  pinMode(BUZZER, OUTPUT);
+  pinMode(BUTTON, INPUT);
+  Sound = timerBegin(3, 80, true);
+  Stage = timerBegin(1, 80, true);
+  timerAttachInterrupt(Sound, &pulseGen, true);
+  timerAttachInterrupt(Stage, &start, true);
+  attachInterrupt(BUTTON, IO_INT_ISR, RISING);
+  start();
+} 
+
+void loop()
+{
+  // Do nothing....
+}
